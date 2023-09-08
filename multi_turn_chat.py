@@ -72,13 +72,6 @@ def main():
         memory= ConversationSummaryMemory( llm=ChatOpenAI(model_name="gpt-3.5-turbo"),chat_memory=message_history,memory_key="chat_history")
         qa = ConversationalRetrievalChain.from_llm(ChatOpenAI(temperature=0,model_name="gpt-3.5-turbo"), Vectorstore.as_retriever(), memory=memory,get_chat_history=get_chat_history)
         
-        
-        
-        
-       
-
-        
-        
         count=0
         chat_history=[]
         while True:
