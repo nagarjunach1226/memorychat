@@ -18,8 +18,12 @@ from langchain.agents import ZeroShotAgent, Tool, AgentExecutor
 from langchain.memory.chat_message_histories import RedisChatMessageHistory
 from langchain import OpenAI, LLMChain
 from langchain.prompts import PromptTemplate
-
-
+from langchain.chat_models import ChatOpenAI
+def get_chat_history(inputs) -> str:
+    res = []
+    for chat_history in inputs:
+        res.append(f"chat_history:{chat_history}")
+    return "\n".join(res)
 
 def main():
     load_dotenv()
@@ -58,15 +62,15 @@ def main():
             with open(f"{store_name}.pkl", "wb") as f:
                 pickle.dump(Vectorstore,f)
          
-        llm = OpenAI(temperature=0)
+        llm = ChatOpenAI(temperature=0,model_name="gpt-3.5-turbo")
         
         
         
         message_history = RedisChatMessageHistory(
         url="redis://default:HQswZNLFCK6KEVDuja1Cinzr47pN8wex@redis-19498.c9.us-east-1-2.ec2.cloud.redislabs.com:19498", ttl=600, session_id=get_script_run_ctx().session_id
         )
-        memory=ConversationBufferMemory( memory_key='chat_history', return_messages=True, output_key='answer')
-        qa = ConversationalRetrievalChain.from_llm(OpenAI(temperature=0), Vectorstore.as_retriever(), memory=memory)
+        memory= ConversationSummaryMemory( llm=ChatOpenAI(model_name="gpt-3.5-turbo"),chat_memory=message_history,memory_key="chat_history")
+        qa = ConversationalRetrievalChain.from_llm(ChatOpenAI(temperature=0,model_name="gpt-3.5-turbo"), Vectorstore.as_retriever(), memory=memory,get_chat_history=get_chat_history)
         
         
         
@@ -76,12 +80,13 @@ def main():
         
         
         count=0
+        chat_history=[]
         while True:
             query=st.text_input("Ask question about your file: ",key=count)
             if query.lower()=="exit":
                 break
             
-            result = qa({"question": query})
+            result = qa({"question": query,"chat_history":chat_history})
             res=result["answer"]
             st.write(res)
             count=count+1
